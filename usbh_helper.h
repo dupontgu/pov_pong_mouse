@@ -25,7 +25,7 @@ by Guy Dupont, August 2024
 
   // Pin D+ for host, D- = D+ + 1
   #ifndef PIN_USB_HOST_DP
-  // THIS IS SPECIFIC TO MY BOARD, use 16 for D+ with prop maker feather
+  // THIS IS SPECIFIC TO MY BOARD, use 16 for D+ with usb host feather
   #define PIN_USB_HOST_DP  3
   #endif
 
