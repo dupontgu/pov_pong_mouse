@@ -76,11 +76,18 @@ const float MAX_Y_VEL = 8.0;
 int8_t mouseVelocity;
 bool gameRunning = false;
 
+float xVel = 0.0009;
+float yVel = 0.0005;
+float xPos = 0.1;
+float yPos = 0.8;
+long lastMoved= 0;
+
 void setup() {
   Serial.begin(115200);
   usb_hid_abs.begin();
   usb_hid.begin();
   initGame(&game, 10.0, SCREEN_HEIGHT, SCREEN_WIDTH, BALL_SIZE, PADDLE_HEIGHT, PADDLE_WIDTH);
+  lastMoved = millis();
 }
 
 // renders the cursor on screen in a specific spot.
@@ -88,8 +95,8 @@ void setup() {
 // (0, 0) -> top left of screen, (1, 1) -> bottom right
 void renderCursor(float x, float y) {
   static uint8_t reportOut[5] = { 0, 0, 0, 0, 0 };
-  uint16_t adjX = (uint16_t)((x * 20000) + 6383);  // padding is (32767 - [max]) / 2
-  uint16_t adjY = (uint16_t)((y * 26000) + 3383);
+  uint16_t adjX = (uint16_t)((x * 32767));  // padding is (32767 - [max]) / 2
+  uint16_t adjY = (uint16_t)((y * 32767));
   reportOut[1] = adjX & 0xFF;
   reportOut[2] = (adjX >> 8) & 0xFF;
   reportOut[3] = adjY & 0xFF;
@@ -99,6 +106,7 @@ void renderCursor(float x, float y) {
     usb_hid_abs.sendReport(4, &reportOut, 5);
   }
 }
+
 
 void loop() {
   if (gameRunning) {
@@ -113,6 +121,19 @@ void loop() {
 
     Frame frame = nextSubframe(&game);
     renderCursor(frame.x, frame.y);
+  } else {
+    if (millis() - lastMoved > 3000) {
+      renderCursor(xPos, yPos);
+      xPos += xVel;
+      yPos += yVel;
+      if (xPos >= 1.0 || xPos <= 0) {
+        xVel = -xVel;
+      }
+
+      if (yPos >= 1.0 || yPos <= 0) {
+        yVel = -yVel;
+      }
+    }
   }
 
   // ok to delay in this loop, different values produce different POV artifacts
@@ -173,6 +194,7 @@ extern "C" {
     static bool scrollButtonDown;
     // different mice might have different lengths here! My shitty HP mouse only reports [buttons, x, y]
     if (len == 3) {
+      lastMoved = millis();
       // scroll wheel click is 3rd bit, use that to start/stop the game
       if (report[0] & 0b100) {
         if (!scrollButtonDown) {
